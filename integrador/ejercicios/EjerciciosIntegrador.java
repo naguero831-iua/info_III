@@ -1,0 +1,228 @@
+package integrador.ejercicios;
+
+import integrador.model.*;
+import integrador.hash.MapaPacientes;
+import integrador.queue.SalaEspera;
+import integrador.planner.*;
+import integrador.agenda.AVLAgenda;
+import integrador.audit.AgendaConHistorial;
+
+import java.time.LocalDateTime;
+
+/*
+ Clase que orquesta demos/ejercicios. No usa colecciones JDK para los repositorios
+ principales; usa MapaPacientes propio y arreglos simples.
+*/
+
+public class EjerciciosIntegrador {
+
+    // repositorios
+    private MapaPacientes mapaPac = new MapaPacientes(11);
+    // Para medicos y agendas usaremos arreglos simples
+    private Medico[] medArr = new Medico[32];
+    private AVLAgenda[] agendas = new AVLAgenda[32];
+    private int medCount = 0;
+    private Turno[] turnosById = new Turno[1024];
+    private int turnoCount = 0;
+
+    // métodos para CSVLoader
+    public void putPaciente(Paciente p) { mapaPac.put(p.dni, p); }
+    public void putMedico(Medico m) {
+        if (medCount >= medArr.length) {
+            Medico[] n = new Medico[medArr.length*2];
+            System.arraycopy(medArr,0,n,0,medArr.length);
+            medArr = n;
+            AVLAgenda[] na = new AVLAgenda[agendas.length*2];
+            System.arraycopy(agendas,0,na,0,agendas.length);
+            agendas = na;
+        }
+        medArr[medCount] = m;
+        agendas[medCount] = new AVLAgenda();
+        medCount++;
+    }
+
+    private int findMedIndex(String matricula) {
+        for (int i=0;i<medCount;i++) if (medArr[i].matricula.equals(matricula)) return i;
+        return -1;
+    }
+
+    private boolean turnoIdExists(String id) {
+        for (int i=0;i<turnoCount;i++) if (turnosById[i].id.equals(id)) return true;
+        return false;
+    }
+
+    public boolean addTurnoFromCSV(Turno t) {
+        if (turnoIdExists(t.id)) return false;
+        if (!mapaPac.containsKey(t.dniPaciente)) return false;
+        int mi = findMedIndex(t.matriculaMedico); if (mi<0) return false;
+        if (t.duracionMin <= 0) return false;
+        if (t.fechaHora.isBefore(LocalDateTime.now())) return false;
+        AVLAgenda ag = agendas[mi];
+        boolean ok = ag.agendar(t);
+        if (!ok) return false;
+        if (turnoCount >= turnosById.length) {
+            Turno[] n = new Turno[turnosById.length*2];
+            System.arraycopy(turnosById,0,n,0,turnosById.length);
+            turnosById = n;
+        }
+        turnosById[turnoCount++] = t;
+        return true;
+    }
+
+    // Ejercicios demos
+    public void ej1_validaciones() {
+        System.out.println("Pacientes: " + mapaPac.size());
+        System.out.println("Medicos: " + medCount);
+        System.out.println("Turnos cargados: " + turnoCount);
+    }
+
+    public void ej2_agenda_demo() {
+        System.out.println("Ej2 demo:");
+        // crear medico demo si no existe
+        Medico m = new Medico("M-DEM","Dr Demo","Gen");
+        putMedico(m);
+        int idx = findMedIndex("M-DEM");
+        AVLAgenda a = agendas[idx];
+        Paciente p1 = new Paciente("90000001","P1"); putPaciente(p1);
+        Paciente p2 = new Paciente("90000002","P2"); putPaciente(p2);
+        LocalDateTime now = LocalDateTime.now().plusMinutes(10);
+        Turno t1 = new Turno("D1","90000001", m.matricula, now, 30, "ctrl");
+        System.out.println("Agendar D1: " + a.agendar(t1));
+        Turno t2 = new Turno("D2","90000002", m.matricula, now.plusMinutes(30), 30, "ctrl2");
+        System.out.println("Agendar D2: " + a.agendar(t2));
+        a.printInOrder();
+        System.out.println("Siguiente >= now: " + a.siguiente(now).orElse(null));
+        System.out.println("Cancelar D1: " + a.cancelar("D1"));
+        a.printInOrder();
+    }
+
+    public void ej3_primerHueco_demo() {
+        System.out.println("Ej3 primerHueco:");
+        Medico m = new Medico("M-003","Dra Hueco","Spec"); putMedico(m);
+        int mi = findMedIndex("M-003");
+        AVLAgenda a = agendas[mi];
+        putPaciente(new Paciente("80000001","Hueco1"));
+        LocalDateTime base = LocalDateTime.now().plusHours(2);
+        a.agendar(new Turno("H1","80000001", m.matricula, base, 30, ""));
+        a.agendar(new Turno("H2","80000001", m.matricula, base.plusMinutes(45), 30, ""));
+        System.out.println("Primer hueco >= base-15: " + a.primerHueco(base.minusMinutes(15), 30));
+    }
+
+    public void ej4_salaEspera_demo() {
+        System.out.println("Ej4 SalaEspera:");
+        SalaEspera s = new SalaEspera(4);
+        s.llega("111"); s.llega("222"); s.llega("333"); s.llega("444"); s.dump();
+        s.llega("555"); s.dump();
+        System.out.println("Atendiendo: " + s.atiende()); s.dump();
+    }
+
+    public void ej5_planner_demo() {
+        System.out.println("Ej5 Planner:");
+        Planner p = new Planner(8);
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        p.programar(new Recordatorio("R1", now.plusMinutes(5), "111", "rec1"));
+        p.programar(new Recordatorio("R2", now.plusMinutes(2), "222", "rec2"));
+        p.dump();
+        System.out.println("Proximo: " + p.proximo());
+        p.reprogramar("R1", now.plusMinutes(1));
+        p.dump();
+    }
+
+    public void ej6_hashpacientes_demo() {
+        System.out.println("Ej6 MapaPacientes:");
+        putPaciente(new Paciente("70000001","Ana"));
+        putPaciente(new Paciente("70000002","Luis"));
+        System.out.println("Contains 70000001: " + mapaPac.containsKey("70000001"));
+        System.out.println("Get 70000002: " + mapaPac.get("70000002"));
+        String[] keys = mapaPac.keysArray();
+        System.out.println("Keys:");
+        for (String k : keys) System.out.println("  " + k);
+    }
+
+    public void ej7_merge_demo() {
+        System.out.println("Ej7 Merge demo:");
+        // simple array merge
+        Turno[] A = new Turno[] { new Turno("A1","1","M1", LocalDateTime.now().plusHours(1), 30, "") };
+        Turno[] B = new Turno[] { new Turno("B1","2","M1", LocalDateTime.now().plusHours(2), 30, "") };
+        Turno[] C = mergeSorted(A,B);
+        for (Turno t : C) System.out.println(" merged: " + t);
+    }
+
+    private Turno[] mergeSorted(Turno[] A, Turno[] B) {
+        Turno[] out = new Turno[A.length + B.length];
+        int i=0,j=0,k=0;
+        while (i<A.length && j<B.length) {
+            if (A[i].compareTo(B[j]) <= 0) out[k++]=A[i++]; else out[k++]=B[j++];
+        }
+        while (i<A.length) out[k++]=A[i++]; while (j<B.length) out[k++]=B[j++];
+        Turno[] res = new Turno[k]; System.arraycopy(out,0,res,0,k); return res;
+    }
+
+    public void ej8_sorts_demo() {
+        System.out.println("Ej8 Sorts:");
+        Turno[] arr = new Turno[5];
+        for (int i=0;i<5;i++) arr[i] = new Turno("T"+i, ""+(5-i), "M", LocalDateTime.now().plusMinutes(i*10), 10+i, "");
+        // shell by duration
+        shellSortByDuration(arr);
+        for (Turno t : arr) System.out.println("  " + t);
+        // quick by patient DNI
+        quickSortByPaciente(arr, 0, arr.length-1);
+        for (Turno t : arr) System.out.println("  " + t);
+    }
+
+    private void shellSortByDuration(Turno[] arr) {
+        int n = arr.length;
+        for (int gap = n/2; gap>0; gap/=2) {
+            for (int i=gap;i<n;i++) {
+                Turno tmp = arr[i]; int j=i;
+                while (j>=gap && arr[j-gap].duracionMin > tmp.duracionMin) { arr[j] = arr[j-gap]; j-=gap; }
+                arr[j] = tmp;
+            }
+        }
+    }
+
+    private void quickSortByPaciente(Turno[] a, int lo, int hi) {
+        if (lo<hi) {
+            int p = partition(a, lo, hi);
+            quickSortByPaciente(a, lo, p-1);
+            quickSortByPaciente(a, p+1, hi);
+        }
+    }
+    private int partition(Turno[] a, int lo, int hi) {
+        String pivot = a[hi].dniPaciente;
+        int i = lo;
+        for (int j=lo;j<hi;j++) {
+            if (a[j].dniPaciente.compareTo(pivot) <= 0) { Turno t=a[i]; a[i]=a[j]; a[j]=t; i++; }
+        }
+        Turno t=a[i]; a[i]=a[hi]; a[hi]=t; return i;
+    }
+
+    public void ej9_audit_demo() {
+        System.out.println("Ej9 Auditoría:");
+        AgendaConHistorial hist = new AgendaConHistorial();
+        AVLAgenda ag = hist.getAgenda();
+        // demo create paciente + turno
+        putPaciente(new Paciente("60000001","Undo1"));
+        Medico m = new Medico("M-AUD","Dr Aud","Gen"); putMedico(m);
+        Turno t = new Turno("AUD1","60000001", m.matricula, LocalDateTime.now().plusMinutes(30), 30, "");
+        System.out.println("Agendar AUD1: " + hist.agendar(t));
+        hist.printAgenda();
+        System.out.println("Undo: " + hist.undo()); hist.printAgenda();
+        System.out.println("Redo: " + hist.redo()); hist.printAgenda();
+    }
+
+    public void ej10_quirofano_demo() {
+        System.out.println("Ej10 Planificador Quirofano:");
+        // simple manual small planner: use Planner for schedule and top-K naive
+        String[] ids = new String[] {"Q1","Q2","Q3"};
+        // simple schedule: assign to next available OR as earliest finish
+        // For brevity we show method signatures in README; demo minimal
+        System.out.println("Demo simplificada: no usa JDK collections.");
+    }
+
+    public void runAllDemos() {
+        ej1_validaciones(); ej2_agenda_demo(); ej3_primerHueco_demo(); ej4_salaEspera_demo();
+        ej5_planner_demo(); ej6_hashpacientes_demo(); ej7_merge_demo(); ej8_sorts_demo();
+        ej9_audit_demo(); ej10_quirofano_demo();
+    }
+}
