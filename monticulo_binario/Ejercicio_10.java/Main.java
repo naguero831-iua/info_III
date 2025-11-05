@@ -1,5 +1,5 @@
-package monticulo_binario.integrador;
-
+package monticulo_binario.ejercicio_10;
+    
 import java.util.Scanner;
 import monticulo_binario.MinHeap;
 
