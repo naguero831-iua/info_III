@@ -1,9 +1,7 @@
 package ejercicio_1;
 
-/**
- * Clase principal para probar la implementación del MinHeap.
- */
-public class main {
+
+public class Main {
     public static void main(String[] args) {
         java.util.PriorityQueue<Integer> heap = new java.util.PriorityQueue<>();
 

@@ -1,15 +1,16 @@
+package ejercicio_1;
 
 
 /**
  * Implementación básica de un montículo binario mínimo (MinHeap).
  * Almacena enteros en un arreglo, manteniendo el menor elemento en la raíz.
  */
-public class minheap {
+public class Minheap {
     private int[] heap;   // Arreglo que contiene los elementos del heap
     private int size;     // Cantidad actual de elementos
 
     // Constructor: inicializa el heap con una capacidad inicial
-    public minheap(int capacidadInicial) {
+    public Minheap(int capacidadInicial) {
         heap = new int[capacidadInicial];
         size = 0;
 
