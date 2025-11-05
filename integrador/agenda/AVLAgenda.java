@@ -10,7 +10,7 @@ import java.util.Optional;
  Permite agendar (rechaza solapamientos), cancelar por id, siguiente, primerHueco.
 */
 
-public class AVLAgenda implements AgendaMedico {
+public class AVLAgenda {
 
     static class Node {
         Turno t; Node izq, der; int h;
