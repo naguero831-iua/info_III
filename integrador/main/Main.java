@@ -17,7 +17,7 @@ public class Main {
             System.out.println("0. Cargar CSVs de ejemplo (data/)");
             System.out.println("1. Ejercicio 1 - Validaciones / resumen");
             System.out.println("2. Ejercicio 2 - Agenda por médico");
-            System.out.println("3. Ejercicio 3 - Buscar primer hueco libre");
+            System.out.println("3. Ejercicio 3 - Buscar próximo turno disponible");
             System.out.println("4. Ejercicio 4 - Sala de espera (cola circular)");
             System.out.println("5. Ejercicio 5 - Planner (recordatorios, min-heap)");
             System.out.println("6. Ejercicio 6 - Índice pacientes (hash chaining propio)");
@@ -29,6 +29,7 @@ public class Main {
             System.out.println("q. Salir");
             System.out.print("Opción: ");
             String op = sc.nextLine().trim();
+            System.out.print("\033[H\033[2J");
             if (op.equalsIgnoreCase("q")) break;
             try {
                 int o = Integer.parseInt(op);

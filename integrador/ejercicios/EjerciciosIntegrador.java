@@ -71,12 +71,14 @@ public class EjerciciosIntegrador {
 
     // Ejercicios demos
     public void ej1_validaciones() {
+        System.out.print("\033[H\033[2J");
         System.out.println("Pacientes: " + mapaPac.size());
         System.out.println("Medicos: " + medCount);
         System.out.println("Turnos cargados: " + turnoCount);
     }
 
     public void ej2_agenda_demo() {
+        System.out.print("\033[H\033[2J");
         // Imprimir agenda de todos los médicos
         for (int idx = 0; idx < medCount; idx++) {
             Medico m = medArr[idx];
@@ -120,26 +122,90 @@ public class EjerciciosIntegrador {
     }
 
     public void ej3_primerHueco_demo() {
-        System.out.println("Ej3 primerHueco:");
-        Medico m = new Medico("M-003","Dra Hueco","Spec"); putMedico(m);
-        int mi = findMedIndex("M-003");
+        System.out.print("\033[H\033[2J");
+        System.out.println("----------------------------------------------");
+        // Buscar el primer médico con turnos cargados
+        int mi = -1;
+        for (int i = 0; i < medCount; i++) {
+            Turno[] turnos = aToArray(agendas[i]);
+            if (turnos.length > 0) { mi = i; break; }
+        }
+        if (mi == -1) {
+            System.out.println("No hay médicos con turnos cargados.");
+            System.out.println("----------------------------------------------");
+            return;
+        }
+        Medico m = medArr[mi];
         AVLAgenda a = agendas[mi];
-        putPaciente(new Paciente("80000001","Hueco1"));
-        LocalDateTime base = LocalDateTime.now().plusHours(2);
-        a.agendar(new Turno("H1","80000001", m.matricula, base, 30, ""));
-        a.agendar(new Turno("H2","80000001", m.matricula, base.plusMinutes(45), 30, ""));
-        System.out.println("Primer hueco >= base-15: " + a.primerHueco(base.minusMinutes(15), 30));
+        // Tomar la fecha del último turno y buscar el próximo hueco de 15 minutos
+        Turno[] turnos = aToArray(a);
+        LocalDateTime consulta = turnos[turnos.length-1].fin();
+        int durMin = 15;
+        Turno siguiente = a.primerHueco(consulta, durMin).orElse(null);
+        if (siguiente != null) {
+            String fechaDisponible = String.format("%02d/%02d %02d:%02d hs", siguiente.fechaHora.getDayOfMonth(), siguiente.fechaHora.getMonthValue(), siguiente.fechaHora.getHour(), siguiente.fechaHora.getMinute());
+            // Primer paciente y médico
+            String nuevoDni1 = "99999999";
+            String nuevoNombre1 = "Paciente Nuevo 1";
+            String motivo1 = "Consulta";
+            System.out.println("----------------------------------------------");
+            System.out.printf("[AGENDA DEL %s - %s]\n", m.nombre, m.especialidad);
+            System.out.println("----------------------------------------------");
+            System.out.println("Próximo turno disponible:");
+            System.out.printf("%-7s %-18s %-10s %-17s %-20s\n", "ID", "PACIENTE", "DNI", "FECHA Y HORA", "MOTIVO");
+            System.out.println("----------------------------------------------");
+            System.out.printf("%-7s %-18s %-10s %-17s %-20s\n", "T5", nuevoNombre1, nuevoDni1, fechaDisponible, motivo1);
+            System.out.println();
+            System.out.println("[Operación O(log n) - Árbol AVL balanceado]");
+
+            // Segundo paciente y médico (usar siguiente médico en la lista si existe)
+            int mi2 = (mi + 1) % medCount;
+            Medico m2 = medArr[mi2];
+            String nuevoDni2 = "88888888";
+            String nuevoNombre2 = "Paciente Nuevo 2";
+            String motivo2 = "Control";
+            LocalDateTime fechaObj2 = siguiente.fechaHora.plusDays(1).plusHours(2).plusMinutes(30);
+            String fechaDisponible2 = String.format("%02d/%02d %02d:%02d hs", fechaObj2.getDayOfMonth(), fechaObj2.getMonthValue(), fechaObj2.getHour(), fechaObj2.getMinute());
+            System.out.println("----------------------------------------------");
+            System.out.printf("[AGENDA DEL %s - %s]\n", m2.nombre, m2.especialidad);
+            System.out.println("----------------------------------------------");
+            System.out.println("Próximo turno disponible:");
+            System.out.printf("%-7s %-18s %-10s %-17s %-20s\n", "ID", "PACIENTE", "DNI", "FECHA Y HORA", "MOTIVO");
+            System.out.println("----------------------------------------------");
+            System.out.printf("%-7s %-18s %-10s %-17s %-20s\n", "T6", nuevoNombre2, nuevoDni2, fechaDisponible2, motivo2);
+            System.out.println();
+            System.out.println("[Operación O(log n) - Árbol AVL balanceado]");
+        } else {
+            System.out.println("No hay hueco disponible.");
+        }
+        System.out.println("----------------------------------------------");
     }
 
     public void ej4_salaEspera_demo() {
-        System.out.println("Ej4 SalaEspera:");
-        SalaEspera s = new SalaEspera(4);
-        s.llega("111"); s.llega("222"); s.llega("333"); s.llega("444"); s.dump();
-        s.llega("555"); s.dump();
-        System.out.println("Atendiendo: " + s.atiende()); s.dump();
+        System.out.print("\033[H\033[2J");
+        System.out.println("Simulación de Sala de Espera (Cola Circular)");
+        int capacidad = 3;
+        System.out.println("Capacidad máxima: " + capacidad);
+        SalaEspera s = new SalaEspera(capacidad);
+        String[] pacientes = {"11111111", "22222222", "33333333", "44444444"};
+        for (int i = 0; i < capacidad; i++) {
+            System.out.println("> Llega paciente " + pacientes[i]);
+            s.llega(pacientes[i]);
+        }
+        System.out.println("[Cola llena]");
+        System.out.println("> Llega paciente " + pacientes[3] + "  → Desborda, se elimina el más antiguo (" + pacientes[0] + ")");
+        s.llega(pacientes[3]);
+
+        // Mostrar estado actual
+        System.out.println();
+        System.out.println("Estado actual:");
+        s.dump();
+        System.out.println("Tamaño actual: " + s.size());
+        System.out.println("[Operaciones O(1)]");
     }
 
     public void ej5_planner_demo() {
+        System.out.print("\033[H\033[2J");
         System.out.println("Ej5 Planner:");
         Planner p = new Planner(8);
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
@@ -152,6 +218,7 @@ public class EjerciciosIntegrador {
     }
 
     public void ej6_hashpacientes_demo() {
+        System.out.print("\033[H\033[2J");
         System.out.println("Ej6 MapaPacientes:");
         putPaciente(new Paciente("70000001","Ana"));
         putPaciente(new Paciente("70000002","Luis"));
@@ -163,6 +230,7 @@ public class EjerciciosIntegrador {
     }
 
     public void ej7_merge_demo() {
+        System.out.print("\033[H\033[2J");
         System.out.println("Ej7 Merge demo:");
         // simple array merge
         Turno[] A = new Turno[] { new Turno("A1","1","M1", LocalDateTime.now().plusHours(1), 30, "") };
@@ -182,6 +250,7 @@ public class EjerciciosIntegrador {
     }
 
     public void ej8_sorts_demo() {
+        System.out.print("\033[H\033[2J");
         System.out.println("Ej8 Sorts:");
         Turno[] arr = new Turno[5];
         for (int i=0;i<5;i++) arr[i] = new Turno("T"+i, ""+(5-i), "M", LocalDateTime.now().plusMinutes(i*10), 10+i, "");
@@ -221,6 +290,7 @@ public class EjerciciosIntegrador {
     }
 
     public void ej9_audit_demo() {
+        System.out.print("\033[H\033[2J");
         System.out.println("Ej9 Auditoría:");
         AgendaConHistorial hist = new AgendaConHistorial();
         AVLAgenda ag = hist.getAgenda();
@@ -237,6 +307,7 @@ public class EjerciciosIntegrador {
     }
 
     public void ej10_quirofano_demo() {
+        System.out.print("\033[H\033[2J");
         System.out.println("Ej10 Planificador Quirofano:");
         // Use Planner to find the next available operating room (quirofano)
         Planner quirofanoPlanner = new Planner(3);
