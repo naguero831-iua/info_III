@@ -98,7 +98,6 @@ public class AVLAgenda implements AgendaMedico {
             node.izq = deleteById(node.izq, id);
             node.der = deleteById(node.der, id);
         }
-        if (node == null) return null;
         upd(node);
         int b = balance(node);
         if (b > 1 && balance(node.izq) >= 0) return rotRight(node);

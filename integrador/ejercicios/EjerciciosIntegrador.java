@@ -206,18 +206,62 @@ public class EjerciciosIntegrador {
         Medico m = new Medico("M-AUD","Dr Aud","Gen"); putMedico(m);
         Turno t = new Turno("AUD1","60000001", m.matricula, LocalDateTime.now().plusMinutes(30), 30, "");
         System.out.println("Agendar AUD1: " + hist.agendar(t));
-        hist.printAgenda();
-        System.out.println("Undo: " + hist.undo()); hist.printAgenda();
-        System.out.println("Redo: " + hist.redo()); hist.printAgenda();
+        ag.printInOrder();
+        System.out.println("Undo: " + hist.undo());
+        ag.printInOrder();
+        System.out.println("Redo: " + hist.redo());
+        ag.printInOrder();
     }
 
     public void ej10_quirofano_demo() {
         System.out.println("Ej10 Planificador Quirofano:");
-        // simple manual small planner: use Planner for schedule and top-K naive
+        // Use Planner to find the next available operating room (quirofano)
+        Planner quirofanoPlanner = new Planner(3);
+        LocalDateTime now = LocalDateTime.now();
+
+        // Initial state: all rooms are available now.
         String[] ids = new String[] {"Q1","Q2","Q3"};
-        // simple schedule: assign to next available OR as earliest finish
-        // For brevity we show method signatures in README; demo minimal
-        System.out.println("Demo simplificada: no usa JDK collections.");
+        for (String id : ids) {
+            // Use a Recordatorio to track when a room is free.
+            // The 'fecha' is the time the room becomes available.
+            quirofanoPlanner.programar(new Recordatorio(id, now, "", "Libre"));
+        }
+
+        System.out.println("Estado inicial de los quirófanos:");
+        quirofanoPlanner.dump();
+
+        // Schedule a 60-minute surgery for patient "P-Q1"
+        // 1. Get the next available room (the one that is free the earliest)
+        Recordatorio proximaSalaLibre = quirofanoPlanner.proximo();
+        System.out.println("\nAsignando cirugía de 60 min para P-Q1...");
+        System.out.println("Sala asignada: " + proximaSalaLibre.id + " (disponible a las " + proximaSalaLibre.fecha + ")");
+
+        // 2. The new surgery will occupy this room. The room will be free after the surgery.
+        LocalDateTime finCirugia1 = proximaSalaLibre.fecha.plusMinutes(60);
+        quirofanoPlanner.programar(new Recordatorio(proximaSalaLibre.id, finCirugia1, "P-Q1", "Cirugía 1"));
+
+        System.out.println("Estado después de la primera cirugía:");
+        quirofanoPlanner.dump();
+
+        // Schedule a 30-minute surgery for patient "P-Q2"
+        proximaSalaLibre = quirofanoPlanner.proximo();
+        System.out.println("\nAsignando cirugía de 30 min para P-Q2...");
+        System.out.println("Sala asignada: " + proximaSalaLibre.id + " (disponible a las " + proximaSalaLibre.fecha + ")");
+        LocalDateTime finCirugia2 = proximaSalaLibre.fecha.plusMinutes(30);
+        quirofanoPlanner.programar(new Recordatorio(proximaSalaLibre.id, finCirugia2, "P-Q2", "Cirugía 2"));
+
+        System.out.println("Estado después de la segunda cirugía:");
+        quirofanoPlanner.dump();
+
+        // Schedule another 45-minute surgery for patient "P-Q3"
+        proximaSalaLibre = quirofanoPlanner.proximo();
+        System.out.println("\nAsignando cirugía de 45 min para P-Q3...");
+        System.out.println("Sala asignada: " + proximaSalaLibre.id + " (disponible a las " + proximaSalaLibre.fecha + ")");
+        LocalDateTime finCirugia3 = proximaSalaLibre.fecha.plusMinutes(45);
+        quirofanoPlanner.programar(new Recordatorio(proximaSalaLibre.id, finCirugia3, "P-Q3", "Cirugía 3"));
+
+        System.out.println("Estado final de los quirófanos:");
+        quirofanoPlanner.dump();
     }
 
     public void runAllDemos() {
