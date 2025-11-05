@@ -1,12 +1,11 @@
-package monticulo_binario.ejercicio_10;
-    
+package monticulo_binario.ejercicio10;
 import java.util.Scanner;
 import monticulo_binario.MinHeap;
 
 public class Main {
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);   
         int opcion = 0;
 
         MinHeap<Tarea> heapTareas = new MinHeap<>(10);

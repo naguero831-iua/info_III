@@ -1,4 +1,4 @@
-package monticulo_binario.ejercicio_10;
+package monticulo_binario.ejercicio10;
 
 public class Tarea implements Comparable<Tarea> {
     private String nombre;
