@@ -55,9 +55,13 @@ public class CSVLoader {
             String[] tok = l.split(",", -1);
             try {
                 String id = tok[0].trim(), dni = tok[1].trim(), mat = tok[2].trim();
-                LocalDateTime fh = LocalDateTime.parse(tok[3].trim(), fmt);
-                int dur = Integer.parseInt(tok[4].trim());
-                String motivo = tok.length>5?tok[5].trim():"";
+                String fechaStr = tok[3].trim();
+                String horaStr = tok[4].trim();
+                int dur = Integer.parseInt(tok[5].trim());
+                String motivo = tok.length>6?tok[6].trim():"";
+                // Combinar fecha y hora
+                String fechaHoraStr = fechaStr + "T" + (horaStr.length()==5?horaStr:horaStr+":00");
+                LocalDateTime fh = LocalDateTime.parse(fechaHoraStr);
                 Turno t = new Turno(id, dni, mat, fh, dur, motivo);
                 boolean added = target.addTurnoFromCSV(t);
                 if (added) ok++; else rej++;

@@ -16,7 +16,7 @@ public class Main {
             System.out.println("\nMenú:");
             System.out.println("0. Cargar CSVs de ejemplo (data/)");
             System.out.println("1. Ejercicio 1 - Validaciones / resumen");
-            System.out.println("2. Ejercicio 2 - Agenda por médico (agendar/cancelar/siguiente)");
+            System.out.println("2. Ejercicio 2 - Agenda por médico");
             System.out.println("3. Ejercicio 3 - Buscar primer hueco libre");
             System.out.println("4. Ejercicio 4 - Sala de espera (cola circular)");
             System.out.println("5. Ejercicio 5 - Planner (recordatorios, min-heap)");

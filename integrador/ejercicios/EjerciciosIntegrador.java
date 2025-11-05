@@ -77,23 +77,45 @@ public class EjerciciosIntegrador {
     }
 
     public void ej2_agenda_demo() {
-        System.out.println("Ej2 demo:");
-        // crear medico demo si no existe
-        Medico m = new Medico("M-DEM","Dr Demo","Gen");
-        putMedico(m);
-        int idx = findMedIndex("M-DEM");
-        AVLAgenda a = agendas[idx];
-        Paciente p1 = new Paciente("90000001","P1"); putPaciente(p1);
-        Paciente p2 = new Paciente("90000002","P2"); putPaciente(p2);
-        LocalDateTime now = LocalDateTime.now().plusMinutes(10);
-        Turno t1 = new Turno("D1","90000001", m.matricula, now, 30, "ctrl");
-        System.out.println("Agendar D1: " + a.agendar(t1));
-        Turno t2 = new Turno("D2","90000002", m.matricula, now.plusMinutes(30), 30, "ctrl2");
-        System.out.println("Agendar D2: " + a.agendar(t2));
-        a.printInOrder();
-        System.out.println("Siguiente >= now: " + a.siguiente(now).orElse(null));
-        System.out.println("Cancelar D1: " + a.cancelar("D1"));
-        a.printInOrder();
+        // Imprimir agenda de todos los médicos
+        for (int idx = 0; idx < medCount; idx++) {
+            Medico m = medArr[idx];
+            AVLAgenda a = agendas[idx];
+            // Encabezado por médico
+            System.out.println("----------------------------------------------");
+            System.out.printf("[AGENDA DEL %s - %s]\n", m.nombre, m.especialidad);
+            System.out.println("----------------------------------------------");
+            System.out.println("Turnos ordenados por fecha (AVL Tree):");
+            System.out.println();
+            System.out.printf("%-7s %-18s %-17s %-20s\n", "ID", "PACIENTE", "FECHA Y HORA", "MOTIVO");
+            System.out.println("----------------------------------------------");
+            Turno[] turnos = aToArray(a);
+            boolean hayTurnos = false;
+            for (Turno t : turnos) {
+                if (!t.matriculaMedico.equals(m.matricula)) continue;
+                Paciente p = mapaPac.get(t.dniPaciente);
+                String nombrePac = p != null ? p.nombre : t.dniPaciente;
+                String hora = String.format("%02d/%02d %02d:%02d hs", t.fechaHora.getDayOfMonth(), t.fechaHora.getMonthValue(), t.fechaHora.getHour(), t.fechaHora.getMinute());
+                System.out.printf("%-7s %-18s %-17s %-20s\n", t.id, nombrePac, hora, t.motivo);
+                hayTurnos = true;
+            }
+            if (!hayTurnos) {
+                System.out.println("(Sin turnos)");
+            }
+            System.out.println();
+            System.out.println("----------------------------------------------");
+        }
+    }
+
+    // Método auxiliar para obtener los turnos ordenados
+    private Turno[] aToArray(AVLAgenda a) {
+        try {
+            java.lang.reflect.Method m = a.getClass().getDeclaredMethod("toArray");
+            m.setAccessible(true);
+            return (Turno[]) m.invoke(a);
+        } catch (Exception e) {
+            return new Turno[0];
+        }
     }
 
     public void ej3_primerHueco_demo() {
