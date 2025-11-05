@@ -6,11 +6,10 @@ import integrador.ejercicios.EjerciciosIntegrador;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+
 
 public class CSVLoader {
 
-    private final DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     public void loadAll(String rutaPac, String rutaMed, String rutaTurn, EjerciciosIntegrador target) {
         try {

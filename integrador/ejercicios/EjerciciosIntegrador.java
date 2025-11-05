@@ -87,7 +87,7 @@ public class EjerciciosIntegrador {
             System.out.println("----------------------------------------------");
             System.out.println("Turnos ordenados por fecha (AVL Tree):");
             System.out.println();
-            System.out.printf("%-7s %-18s %-17s %-20s\n", "ID", "PACIENTE", "FECHA Y HORA", "MOTIVO");
+            System.out.printf("%-7s %-18s %-10s %-17s %-20s\n", "ID", "PACIENTE", "DNI", "FECHA Y HORA", "MOTIVO");
             System.out.println("----------------------------------------------");
             Turno[] turnos = aToArray(a);
             boolean hayTurnos = false;
@@ -95,8 +95,9 @@ public class EjerciciosIntegrador {
                 if (!t.matriculaMedico.equals(m.matricula)) continue;
                 Paciente p = mapaPac.get(t.dniPaciente);
                 String nombrePac = p != null ? p.nombre : t.dniPaciente;
+                String dniPac = t.dniPaciente;
                 String hora = String.format("%02d/%02d %02d:%02d hs", t.fechaHora.getDayOfMonth(), t.fechaHora.getMonthValue(), t.fechaHora.getHour(), t.fechaHora.getMinute());
-                System.out.printf("%-7s %-18s %-17s %-20s\n", t.id, nombrePac, hora, t.motivo);
+                System.out.printf("%-7s %-18s %-10s %-17s %-20s\n", t.id, nombrePac, dniPac, hora, t.motivo);
                 hayTurnos = true;
             }
             if (!hayTurnos) {
