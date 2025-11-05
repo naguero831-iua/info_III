@@ -1,7 +1,9 @@
 package main;
 
 import java.util.Scanner;
-import avl.*;
+
+import avl.EjerciciosAVL;
+import monticuloBinario.*;
 
 public class Main {
 
