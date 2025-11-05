@@ -35,8 +35,13 @@ public class SalaEspera {
         return r;
     }
 
-    public synchronized String peek() { return size==0?null:data[front]; }
-    public synchronized int size() { return size; }
+    public synchronized String peek() { 
+        return size==0?null:data[front]; 
+    }
+
+    public synchronized int size() { 
+        return size; 
+    }
 
     public synchronized void dump() {
         System.out.print("FRONT->[");
