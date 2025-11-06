@@ -226,13 +226,9 @@ public class EjerciciosIntegrador {
             System.out.printf("%-8s %-16s %-8s %-20s\n", rec.id, rec.fecha.toLocalDate(), hora, rec.mensaje);
         }
 
-            System.out.println("> Cancelar turno T-015");
-            hist.cancelar("T-015");
-            printAgendaTabla(hist.getAgenda());
-
-            System.out.println("> Reprogramar turno T-051 → nueva fecha 25/10 09:00 hs");
-            hist.reprogramar("T-051", LocalDateTime.of(2025,10,25,9,0));
-            printAgendaTabla(hist.getAgenda());
+        // --- Eliminar bloque de hist.cancelar y printAgendaTabla que no corresponde aquí ---
+        System.out.println("\nLista de recordatorios según orden de prioridad (min-heap):");
+        System.out.println("--------------------------------------------------------------");
         for (int i = 0; i < p.size(); i++) {
             Recordatorio rec = getHeapRecordatorio(p, i);
             if (rec != null) {
