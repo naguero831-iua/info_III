@@ -226,7 +226,13 @@ public class EjerciciosIntegrador {
             System.out.printf("%-8s %-16s %-8s %-20s\n", rec.id, rec.fecha.toLocalDate(), hora, rec.mensaje);
         }
 
-        System.out.println("\nEstado actual del heap:");
+            System.out.println("> Cancelar turno T-015");
+            hist.cancelar("T-015");
+            printAgendaTabla(hist.getAgenda());
+
+            System.out.println("> Reprogramar turno T-051 → nueva fecha 25/10 09:00 hs");
+            hist.reprogramar("T-051", LocalDateTime.of(2025,10,25,9,0));
+            printAgendaTabla(hist.getAgenda());
         for (int i = 0; i < p.size(); i++) {
             Recordatorio rec = getHeapRecordatorio(p, i);
             if (rec != null) {
@@ -354,38 +360,127 @@ public class EjerciciosIntegrador {
 
     public void ej7_merge_demo() {
         System.out.print("\033[H\033[2J");
-        System.out.println("Ej7 Merge demo:");
-        // simple array merge
-        Turno[] A = new Turno[] { new Turno("A1","1","M1", LocalDateTime.now().plusHours(1), 30, "") };
-        Turno[] B = new Turno[] { new Turno("B1","2","M1", LocalDateTime.now().plusHours(2), 30, "") };
-        Turno[] C = mergeSorted(A,B);
-        for (Turno t : C) System.out.println(" merged: " + t);
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Ej7: Consolidación de agendas (merge y deduplicación)");
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Se unifican dos agendas ordenadas por fecha, deduplicando por id y por choque exacto de médico+horario.");
+        System.out.println();
+
+        // Simular dos agendas ordenadas (agendaLocal y agendaNube)
+        Turno[] agendaLocal = new Turno[] {
+            new Turno("T1", "11111111", "M-001", LocalDateTime.of(2025,11,8,  9, 0), 30, "Control"),
+            new Turno("T2", "22222222", "M-001", LocalDateTime.of(2025,11,9,  9,40), 30, "Consulta"),
+            new Turno("T3", "33333333", "M-002", LocalDateTime.of(2025,11,10,10,0), 45, "Revision")
+        };
+        Turno[] agendaNube = new Turno[] {
+            new Turno("T2", "22222222", "M-001", LocalDateTime.of(2025,11,9,  9,40), 30, "Consulta (nube)"), // mismo id
+            new Turno("T4", "44444444", "M-003", LocalDateTime.of(2025,11,7, 11,0), 60, "Operacion"),
+            new Turno("T5", "11111111", "M-001", LocalDateTime.of(2025,11,8,  9, 0), 30, "Control duplicado"), // mismo médico+horario
+            new Turno("T6", "55555555", "M-002", LocalDateTime.of(2025,11,11, 8,0), 30, "Nuevo")
+        };
+
+        // Merge y deduplicación
+        java.util.List<String> conflictos = new java.util.ArrayList<>();
+        Turno[] unificada = mergeAndDedup(agendaLocal, agendaNube, conflictos);
+
+        System.out.println("Turnos unificados:");
+        System.out.printf("%-4s %-10s %-8s %-16s %-8s %-10s\n", "ID", "PACIENTE", "MEDICO", "FECHA", "HORA", "MOTIVO");
+        System.out.println("---------------------------------------------------------------------");
+        for (Turno t : unificada) {
+            String hora = String.format("%02d:%02d", t.fechaHora.getHour(), t.fechaHora.getMinute());
+            System.out.printf("%-4s %-10s %-8s %-16s %-8s %-10s\n", t.id, t.dniPaciente, t.matriculaMedico, t.fechaHora.toLocalDate(), hora, t.motivo);
+        }
+        System.out.println();
+        if (!conflictos.isEmpty()) {
+            System.out.println("Conflictos detectados:");
+            for (String c : conflictos) System.out.println("  - " + c);
+        } else {
+            System.out.println("No se detectaron conflictos.");
+        }
+        System.out.println("═════════════════════════════════════════════════════════");
     }
 
-    private Turno[] mergeSorted(Turno[] A, Turno[] B) {
-        Turno[] out = new Turno[A.length + B.length];
-        int i=0,j=0,k=0;
-        while (i<A.length && j<B.length) {
-            if (A[i].compareTo(B[j]) <= 0) out[k++]=A[i++]; else out[k++]=B[j++];
+    // Merge con deduplicación y log de conflictos
+    private Turno[] mergeAndDedup(Turno[] A, Turno[] B, java.util.List<String> conflictos) {
+        java.util.ArrayList<Turno> res = new java.util.ArrayList<>();
+        int i=0, j=0;
+        java.util.HashSet<String> ids = new java.util.HashSet<>();
+        java.util.HashSet<String> medHorario = new java.util.HashSet<>();
+        while (i<A.length || j<B.length) {
+            Turno tA = i<A.length ? A[i] : null;
+            Turno tB = j<B.length ? B[j] : null;
+            Turno next;
+            if (tA != null && (tB == null || tA.compareTo(tB) <= 0)) {
+                next = tA; i++;
+            } else {
+                next = tB; j++;
+            }
+            if (next == null) continue;
+            boolean idDup = !ids.add(next.id);
+            String claveMedHorario = next.matriculaMedico + "@" + next.fechaHora;
+            boolean medHorarioDup = !medHorario.add(claveMedHorario);
+            if (idDup) {
+                conflictos.add("ID duplicado: " + next.id + " (" + next.motivo + ")");
+                continue;
+            }
+            if (medHorarioDup) {
+                conflictos.add("Conflicto de médico+horario: " + next.matriculaMedico + " " + next.fechaHora + " (" + next.motivo + ")");
+                continue;
+            }
+            res.add(next);
         }
-        while (i<A.length) out[k++]=A[i++]; while (j<B.length) out[k++]=B[j++];
-        Turno[] res = new Turno[k]; System.arraycopy(out,0,res,0,k); return res;
+        return res.toArray(new Turno[0]);
     }
 
     public void ej8_sorts_demo() {
         System.out.print("\033[H\033[2J");
-        System.out.println("Ej8 Sorts:");
-        Turno[] arr = new Turno[5];
-        for (int i=0;i<5;i++) arr[i] = new Turno("T"+i, ""+(5-i), "M", LocalDateTime.now().plusMinutes(i*10), 10+i, "");
-        // shell by duration
-        shellSortByDuration(arr);
-        for (Turno t : arr) System.out.println("  " + t);
-        // quick by patient DNI
-        quickSortByPaciente(arr, 0, arr.length-1);
-        for (Turno t : arr) System.out.println("  " + t);
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Ej8: Reportes operativos con múltiples ordenamientos");
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Se generan vistas del día por hora, por duración y por apellido de paciente.");
+        System.out.println("Se mide el tiempo de cada algoritmo con 1k, 10k y 50k turnos sintéticos.");
+        System.out.println();
+
+        int[] sizes = {1000, 10000, 50000};
+        for (int n : sizes) {
+            System.out.println("--- Prueba con " + n + " turnos ---");
+            Turno[] base = generarTurnosSinteticos(n);
+
+            // Por hora (inserción estable)
+            Turno[] porHora = copiarTurnos(base);
+            long t1 = System.nanoTime();
+            insercionPorHora(porHora);
+            long t2 = System.nanoTime();
+            System.out.printf("[Inserción] Por hora: %.2f ms\n", (t2-t1)/1e6);
+
+            // Por duración (Shellsort)
+            Turno[] porDur = copiarTurnos(base);
+            t1 = System.nanoTime();
+            shellSortByDuracion(porDur);
+            t2 = System.nanoTime();
+            System.out.printf("[Shellsort] Por duración: %.2f ms\n", (t2-t1)/1e6);
+
+            // Por apellido (Quicksort Lomuto)
+            Turno[] porApe = copiarTurnos(base);
+            t1 = System.nanoTime();
+            quickSortPorApellido(porApe, 0, porApe.length-1);
+            t2 = System.nanoTime();
+            System.out.printf("[Quicksort] Por apellido: %.2f ms\n", (t2-t1)/1e6);
+
+            // Mostrar primeras filas de cada vista
+            System.out.println("\nVista por hora (primeros 5):");
+            printTurnosTabla(porHora, 5);
+            System.out.println("Vista por duración (primeros 5):");
+            printTurnosTabla(porDur, 5);
+            System.out.println("Vista por apellido (primeros 5):");
+            printTurnosTabla(porApe, 5);
+            System.out.println();
+        }
+        System.out.println("═════════════════════════════════════════════════════════");
     }
 
-    private void shellSortByDuration(Turno[] arr) {
+    // Shellsort por duración
+    private void shellSortByDuracion(Turno[] arr) {
         int n = arr.length;
         for (int gap = n/2; gap>0; gap/=2) {
             for (int i=gap;i<n;i++) {
@@ -396,94 +491,236 @@ public class EjerciciosIntegrador {
         }
     }
 
-    private void quickSortByPaciente(Turno[] a, int lo, int hi) {
+    // Quicksort por apellido de paciente (Lomuto)
+    private void quickSortPorApellido(Turno[] a, int lo, int hi) {
         if (lo<hi) {
-            int p = partition(a, lo, hi);
-            quickSortByPaciente(a, lo, p-1);
-            quickSortByPaciente(a, p+1, hi);
+            int p = partitionApellido(a, lo, hi);
+            quickSortPorApellido(a, lo, p-1);
+            quickSortPorApellido(a, p+1, hi);
         }
     }
-    private int partition(Turno[] a, int lo, int hi) {
-        String pivot = a[hi].dniPaciente;
+    private int partitionApellido(Turno[] a, int lo, int hi) {
+        String pivot = apellidoDeDni(a[hi].dniPaciente);
         int i = lo;
         for (int j=lo;j<hi;j++) {
-            if (a[j].dniPaciente.compareTo(pivot) <= 0) { Turno t=a[i]; a[i]=a[j]; a[j]=t; i++; }
+            if (apellidoDeDni(a[j].dniPaciente).compareTo(pivot) <= 0) { Turno t=a[i]; a[i]=a[j]; a[j]=t; i++; }
         }
         Turno t=a[i]; a[i]=a[hi]; a[hi]=t; return i;
+    }
+    // Inserción estable por hora
+    private void insercionPorHora(Turno[] arr) {
+        for (int i=1;i<arr.length;i++) {
+            Turno key = arr[i]; int j = i-1;
+            while (j>=0 && arr[j].fechaHora.isAfter(key.fechaHora)) {
+                arr[j+1] = arr[j]; j--;
+            }
+            arr[j+1] = key;
+        }
+    }
+
+    // Utilidades para demo
+    private Turno[] generarTurnosSinteticos(int n) {
+        java.util.Random rnd = new java.util.Random(42);
+        String[] apellidos = {
+            "Perez","Gomez","Ruiz","Diaz","Lopez","Sosa","Torres","Romero","Silva","Fernandez",
+            "Mendez","Castro","Vega","Acosta","Navarro","Rojas","Molina","Ortega","Cabrera","Ponce",
+            "Suarez","Herrera","Aguilar","Vargas","Campos","Delgado","Cruz","Morales","Peña","Ibarra"
+        };
+        Turno[] arr = new Turno[n];
+        for (int i=0;i<n;i++) {
+            String id = "T"+i;
+            String dni = String.valueOf(10000000 + rnd.nextInt(90000000));
+            String apellido = apellidos[rnd.nextInt(apellidos.length)];
+            // Simular apellido en nombre
+            String matricula = "M-" + (100+rnd.nextInt(10));
+            java.time.LocalDateTime fecha = java.time.LocalDateTime.of(2025,11,6, 8+rnd.nextInt(10), rnd.nextInt(60));
+            int dur = 10 + rnd.nextInt(50);
+            String motivo = "Motivo" + (rnd.nextInt(5)+1);
+            arr[i] = new Turno(id, dni, matricula, fecha, dur, motivo);
+            // Guardar apellido en dni para demo de ordenamiento por apellido
+            arr[i].dniPaciente = apellido + "," + dni;
+        }
+        return arr;
+    }
+
+    private Turno[] copiarTurnos(Turno[] arr) {
+        Turno[] out = new Turno[arr.length];
+        for (int i=0;i<arr.length;i++) out[i] = arr[i].deepCopy();
+        return out;
+    }
+
+    private String apellidoDeDni(String dni) {
+        // Para demo: el apellido está antes de la coma
+        int idx = dni.indexOf(",");
+        return idx>0 ? dni.substring(0,idx) : dni;
+    }
+
+    private void printTurnosTabla(Turno[] arr, int max) {
+        System.out.printf("%-4s %-12s %-8s %-16s %-8s %-10s\n", "ID", "APELLIDO", "MEDICO", "FECHA", "HORA", "MOTIVO");
+        System.out.println("---------------------------------------------------------------------");
+        for (int i=0;i<Math.min(arr.length,max);i++) {
+            Turno t = arr[i];
+            String ape = apellidoDeDni(t.dniPaciente);
+            String hora = String.format("%02d:%02d", t.fechaHora.getHour(), t.fechaHora.getMinute());
+            System.out.printf("%-4s %-12s %-8s %-16s %-8s %-10s\n", t.id, ape, t.matriculaMedico, t.fechaHora.toLocalDate(), hora, t.motivo);
+        }
     }
 
     public void ej9_audit_demo() {
         System.out.print("\033[H\033[2J");
-        System.out.println("Ej9 Auditoría:");
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Ej9: Auditoría y Undo/Redo de cambios en agenda");
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Soporta agendar, cancelar, reprogramar con deshacer/rehacer multi-nivel.");
+        System.out.println();
+
+        // Usar pacientes y médicos del archivo
+        Paciente p1 = new Paciente("11111111", "Juan Perez");
+        Paciente p2 = new Paciente("22222222", "Ana Gomez");
+        putPaciente(p1); putPaciente(p2);
+        Medico m = new Medico("M-001", "Dr. Perez", "Cardiologia"); putMedico(m);
+
         AgendaConHistorial hist = new AgendaConHistorial();
         AVLAgenda ag = hist.getAgenda();
-        // demo create paciente + turno
-        putPaciente(new Paciente("60000001","Undo1"));
-        Medico m = new Medico("M-AUD","Dr Aud","Gen"); putMedico(m);
-        Turno t = new Turno("AUD1","60000001", m.matricula, LocalDateTime.now().plusMinutes(30), 30, "");
-        System.out.println("Agendar AUD1: " + hist.agendar(t));
-        ag.printInOrder();
-        System.out.println("Undo: " + hist.undo());
-        ag.printInOrder();
-        System.out.println("Redo: " + hist.redo());
-        ag.printInOrder();
+
+        // Agendar dos turnos reales
+        Turno t1 = new Turno("T1", p1.dni, m.matricula, LocalDateTime.now().plusMinutes(30), 30, "Consulta");
+        Turno t2 = new Turno("T2", p2.dni, m.matricula, LocalDateTime.now().plusMinutes(90), 30, "Control");
+        System.out.println("Agendar T1: " + hist.agendar(t1));
+        System.out.println("Agendar T2: " + hist.agendar(t2));
+        printAgendaTabla(ag);
+
+        // Cancelar T1 y mostrar agenda (debe quedar solo T2)
+        System.out.println("\n─────────────────────────────────────────────────────────");
+        System.out.println("Cancelar T1: " + hist.cancelar("T1"));
+        printAgendaTabla(ag);
+
+        // Reprogramar T2 y mostrar agenda (debe quedar solo T2 con nueva fecha)
+        System.out.println("\n─────────────────────────────────────────────────────────");
+        LocalDateTime nuevaFecha = LocalDateTime.now().plusHours(2);
+        System.out.println("Reprogramar T2 a +2hs: " + hist.reprogramar("T2", nuevaFecha));
+        printAgendaTabla(ag);
+
+        // Undo multi-nivel
+        System.out.println("\n─────────────────────────────────────────────────────────");
+        System.out.println("Undo 1: " + hist.undo());
+        printAgendaTabla(ag);
+        System.out.println("Undo 2: " + hist.undo());
+        printAgendaTabla(ag);
+        System.out.println("Undo 3: " + hist.undo());
+        printAgendaTabla(ag);
+
+        // Redo multi-nivel
+        System.out.println("\n─────────────────────────────────────────────────────────");
+        System.out.println("Redo 1: " + hist.redo());
+        printAgendaTabla(ag);
+        System.out.println("Redo 2: " + hist.redo());
+        printAgendaTabla(ag);
+        System.out.println("Redo 3: " + hist.redo());
+        printAgendaTabla(ag);
+
+        // Intentar redo después de nueva acción
+        System.out.println("\n─────────────────────────────────────────────────────────");
+        System.out.println("Agendar nuevo turno (T3), se debe limpiar pila de redo:");
+        Turno t3 = new Turno("T3", p1.dni, m.matricula, LocalDateTime.now().plusMinutes(180), 30, "Extra");
+        System.out.println("Agendar T3: " + hist.agendar(t3));
+        System.out.println("Intentar redo (debe fallar): " + hist.redo());
+        printAgendaTabla(ag);
+        System.out.println("═════════════════════════════════════════════════════════");
+    }
+
+    // Imprime la agenda en formato tabla estética
+    private void printAgendaTabla(AVLAgenda ag) {
+        Turno[] turnos = null;
+        try {
+            java.lang.reflect.Method m = ag.getClass().getDeclaredMethod("toArray");
+            m.setAccessible(true);
+            turnos = (Turno[]) m.invoke(ag);
+        } catch (Exception e) { turnos = new Turno[0]; }
+        System.out.println("\nAgenda actual:");
+        System.out.printf("%-4s %-15s %-10s %-16s %-8s %-10s\n", "ID", "PACIENTE", "MEDICO", "FECHA", "HORA", "MOTIVO");
+        System.out.println("--------------------------------------------------------------------------");
+        for (Turno t : turnos) {
+            String hora = String.format("%02d:%02d", t.fechaHora.getHour(), t.fechaHora.getMinute());
+            System.out.printf("%-4s %-15s %-10s %-16s %-8s %-10s\n", t.id, t.dniPaciente, t.matriculaMedico, t.fechaHora.toLocalDate(), hora, t.motivo);
+        }
+        if (turnos.length == 0) System.out.println("(Agenda vacía)");
     }
 
     public void ej10_quirofano_demo() {
         System.out.print("\033[H\033[2J");
-        System.out.println("Ej10 Planificador Quirofano:");
-        // Use Planner to find the next available operating room (quirofano)
-        Planner quirofanoPlanner = new Planner(3);
-        LocalDateTime now = LocalDateTime.now();
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Ej10: Planificador de Quirófanos (Min-Heap)");
+        System.out.println("═════════════════════════════════════════════════════════");
 
-        // Initial state: all rooms are available now.
-        String[] ids = new String[] {"Q1","Q2","Q3"};
-        for (String id : ids) {
-            // Use a Recordatorio to track when a room is free.
-            // The 'fecha' is the time the room becomes available.
-            quirofanoPlanner.programar(new Recordatorio(id, now, "", "Libre"));
+        // Usar los primeros 3 pacientes reales del mapa
+        String[] dnis = mapaPac.keysArray();
+        Paciente[] pacientes = new Paciente[3];
+        for (int i = 0; i < 3; i++) {
+            pacientes[i] = mapaPac.get(dnis[i]);
         }
 
-        System.out.println("Estado inicial de los quirófanos:");
-        quirofanoPlanner.dump();
+        Planner quirofanoPlanner = new Planner(3);
+        LocalDateTime now = LocalDateTime.now();
+        String[] salas = {"Q1", "Q2", "Q3"};
+        for (String sala : salas) {
+            quirofanoPlanner.programar(new Recordatorio(sala, now, "", "Libre"));
+        }
 
-        // Schedule a 60-minute surgery for patient "P-Q1"
-        // 1. Get the next available room (the one that is free the earliest)
-        Recordatorio proximaSalaLibre = quirofanoPlanner.proximo();
-        System.out.println("\nAsignando cirugía de 60 min para P-Q1...");
-        System.out.println("Sala asignada: " + proximaSalaLibre.id + " (disponible a las " + proximaSalaLibre.fecha + ")");
+        System.out.println("\nEstado inicial de los quirófanos:");
+        printTablaQuirofanos(quirofanoPlanner);
 
-        // 2. The new surgery will occupy this room. The room will be free after the surgery.
-        LocalDateTime finCirugia1 = proximaSalaLibre.fecha.plusMinutes(60);
-        quirofanoPlanner.programar(new Recordatorio(proximaSalaLibre.id, finCirugia1, "P-Q1", "Cirugía 1"));
+        // Cirugía 1: paciente 1, 60 min
+        Recordatorio r1 = quirofanoPlanner.proximo();
+        System.out.println("\nAsignando cirugía de 60 min para " + pacientes[0].nombre + "...");
+        System.out.println("Sala asignada: " + r1.id + " (disponible a las " + r1.fecha + ")");
+        LocalDateTime fin1 = r1.fecha.plusMinutes(60);
+        quirofanoPlanner.programar(new Recordatorio(r1.id, fin1, pacientes[0].dni, "Cirugía 1"));
+        System.out.println("\nEstado después de la primera cirugía:");
+        printTablaQuirofanos(quirofanoPlanner);
 
-        System.out.println("Estado después de la primera cirugía:");
-        quirofanoPlanner.dump();
+        // Cirugía 2: paciente 2, 30 min
+        Recordatorio r2 = quirofanoPlanner.proximo();
+        System.out.println("\nAsignando cirugía de 30 min para " + pacientes[1].nombre + "...");
+        System.out.println("Sala asignada: " + r2.id + " (disponible a las " + r2.fecha + ")");
+        LocalDateTime fin2 = r2.fecha.plusMinutes(30);
+        quirofanoPlanner.programar(new Recordatorio(r2.id, fin2, pacientes[1].dni, "Cirugía 2"));
+        System.out.println("\nEstado después de la segunda cirugía:");
+        printTablaQuirofanos(quirofanoPlanner);
 
-        // Schedule a 30-minute surgery for patient "P-Q2"
-        proximaSalaLibre = quirofanoPlanner.proximo();
-        System.out.println("\nAsignando cirugía de 30 min para P-Q2...");
-        System.out.println("Sala asignada: " + proximaSalaLibre.id + " (disponible a las " + proximaSalaLibre.fecha + ")");
-        LocalDateTime finCirugia2 = proximaSalaLibre.fecha.plusMinutes(30);
-        quirofanoPlanner.programar(new Recordatorio(proximaSalaLibre.id, finCirugia2, "P-Q2", "Cirugía 2"));
-
-        System.out.println("Estado después de la segunda cirugía:");
-        quirofanoPlanner.dump();
-
-        // Schedule another 45-minute surgery for patient "P-Q3"
-        proximaSalaLibre = quirofanoPlanner.proximo();
-        System.out.println("\nAsignando cirugía de 45 min para P-Q3...");
-        System.out.println("Sala asignada: " + proximaSalaLibre.id + " (disponible a las " + proximaSalaLibre.fecha + ")");
-        LocalDateTime finCirugia3 = proximaSalaLibre.fecha.plusMinutes(45);
-        quirofanoPlanner.programar(new Recordatorio(proximaSalaLibre.id, finCirugia3, "P-Q3", "Cirugía 3"));
-
-        System.out.println("Estado final de los quirófanos:");
-        quirofanoPlanner.dump();
+        // Cirugía 3: paciente 3, 45 min
+        Recordatorio r3 = quirofanoPlanner.proximo();
+        System.out.println("\nAsignando cirugía de 45 min para " + pacientes[2].nombre + "...");
+        System.out.println("Sala asignada: " + r3.id + " (disponible a las " + r3.fecha + ")");
+        LocalDateTime fin3 = r3.fecha.plusMinutes(45);
+        quirofanoPlanner.programar(new Recordatorio(r3.id, fin3, pacientes[2].dni, "Cirugía 3"));
+        System.out.println("\nEstado final de los quirófanos:");
+        printTablaQuirofanos(quirofanoPlanner);
+        System.out.println("═════════════════════════════════════════════════════════");
     }
 
-    public void runAllDemos() {
-        ej1_validaciones(); ej2_agenda_demo(); ej3_primerHueco_demo(); ej4_salaEspera_demo();
-        ej5_planner_demo(); ej6_hashpacientes_demo(); ej7_merge_demo(); ej8_sorts_demo();
-        ej9_audit_demo(); ej10_quirofano_demo();
+    // Imprime el estado de los quirófanos en formato tabla estética
+    private void printTablaQuirofanos(Planner planner) {
+        // Obtener snapshot del heap (no modificar el heap real)
+        try {
+            java.lang.reflect.Field f = planner.getClass().getDeclaredField("heap");
+            f.setAccessible(true);
+            Recordatorio[] arr = (Recordatorio[]) f.get(planner);
+            java.lang.reflect.Field sz = planner.getClass().getDeclaredField("size");
+            sz.setAccessible(true);
+            int n = (int) sz.get(planner);
+            System.out.printf("%-8s %-18s %-10s %-16s %-8s %-12s\n", "SALA", "PACIENTE", "DNI", "FECHA", "HORA", "ESTADO");
+            System.out.println("----------------------------------------------------------------------------");
+            for (int i = 0; i < n; i++) {
+                Recordatorio r = arr[i];
+                String nombre = r.dniPaciente != null && !r.dniPaciente.isEmpty() ? (mapaPac.get(r.dniPaciente) != null ? mapaPac.get(r.dniPaciente).nombre : "-") : "-";
+                String hora = String.format("%02d:%02d", r.fecha.getHour(), r.fecha.getMinute());
+                String estado = r.mensaje;
+                System.out.printf("%-8s %-18s %-10s %-16s %-8s %-12s\n", r.id, nombre, r.dniPaciente, r.fecha.toLocalDate(), hora, estado);
+            }
+            if (n == 0) System.out.println("(Sin quirófanos ocupados)");
+        } catch (Exception e) {
+            System.out.println("(Error mostrando quirófanos)");
+        }
     }
 }
