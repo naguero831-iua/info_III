@@ -281,14 +281,75 @@ public class EjerciciosIntegrador {
 
     public void ej6_hashpacientes_demo() {
         System.out.print("\033[H\033[2J");
-        System.out.println("Ej6 MapaPacientes:");
-        putPaciente(new Paciente("70000001","Ana"));
-        putPaciente(new Paciente("70000002","Luis"));
-        System.out.println("Contains 70000001: " + mapaPac.containsKey("70000001"));
-        System.out.println("Get 70000002: " + mapaPac.get("70000002"));
-        String[] keys = mapaPac.keysArray();
-        System.out.println("Keys:");
-        for (String k : keys) System.out.println("  " + k);
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Ej6: Índice rápido de pacientes (HashMap propio)");
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Hash de String: polinómico base 31, con encadenamiento y rehash dinámico.");
+        System.out.println();
+
+        // Usar los pacientes ya cargados desde el CSV
+        System.out.println("(Pacientes cargados desde pacientes.csv)");
+
+        // Mostrar todos los pacientes actuales
+        String[] claves = mapaPac.keysArray();
+        if (claves.length == 0) {
+            System.out.println("No hay pacientes cargados. Asegúrese de cargar el CSV antes de ejecutar la demo.");
+            return;
+        }
+
+        System.out.println("Operaciones básicas:");
+        System.out.printf("%-12s %-20s\n", "DNI", "NOMBRE");
+        System.out.println("---------------------------------------------");
+        for (String k : claves) {
+            Paciente p = mapaPac.get(k);
+            System.out.printf("%-12s %-20s\n", p.dni, p.nombre);
+        }
+        System.out.println();
+
+        // Buscar un paciente real del CSV
+        String buscarDni = claves[0];
+        Paciente buscado = mapaPac.get(buscarDni);
+        System.out.println("Buscar paciente (get):");
+        if (buscado != null)
+            System.out.printf("  > get(%s): %s\n", buscarDni, buscado);
+        else
+            System.out.printf("  > get(%s): (no encontrado)\n", buscarDni);
+
+        System.out.println();
+        System.out.println("¿Existe paciente " + claves[1] + "? (containsKey): " + mapaPac.containsKey(claves[1]));
+        System.out.println("¿Existe paciente 80000000? (containsKey): " + mapaPac.containsKey("80000000"));
+
+        System.out.println();
+        System.out.println("Eliminar paciente " + claves[2] + " (remove): " + mapaPac.remove(claves[2]));
+        System.out.println("Eliminar paciente 80000000 (remove): " + mapaPac.remove("80000000"));
+
+        System.out.println();
+        System.out.println("Estado actual del índice:");
+        System.out.printf("%-12s %-20s\n", "DNI", "NOMBRE");
+        System.out.println("---------------------------------------------");
+        for (String k : mapaPac.keysArray()) {
+            Paciente p = mapaPac.get(k);
+            System.out.printf("%-12s %-20s\n", p.dni, p.nombre);
+        }
+
+        System.out.println();
+        System.out.println("Cantidad de pacientes (size): " + mapaPac.size());
+
+        // Forzar rehash
+        System.out.println();
+        System.out.println("Forzando rehash (agregando más pacientes)...");
+        int antes = mapaPac.size();
+        for (int i = 100; i < 115; i++) {
+            putPaciente(new Paciente("9" + i, "Paciente" + i));
+        }
+        int despues = mapaPac.size();
+        System.out.println("Pacientes antes: " + antes + ", después: " + despues);
+        System.out.println("Claves tras rehash:");
+        for (String k : mapaPac.keysArray()) System.out.println("  " + k);
+
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("[Operaciones O(1) promedio, rehash O(n)]");
+        System.out.println("═════════════════════════════════════════════════════════");
     }
 
     public void ej7_merge_demo() {
