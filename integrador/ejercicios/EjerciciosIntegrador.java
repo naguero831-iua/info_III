@@ -206,16 +206,78 @@ public class EjerciciosIntegrador {
 
     public void ej5_planner_demo() {
         System.out.print("\033[H\033[2J");
-        System.out.println("Ej5 Planner:");
+        System.out.println("═════════════════════════════════════════════════════════");
+        System.out.println("Simulación de Planner de Recordatorios (Min-Heap AVL)");
+        System.out.println("═════════════════════════════════════════════════════════");
         Planner p = new Planner(8);
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        p.programar(new Recordatorio("R1", now.plusMinutes(5), "111", "rec1"));
-        p.programar(new Recordatorio("R2", now.plusMinutes(2), "222", "rec2"));
-        p.dump();
-        System.out.println("Proximo: " + p.proximo());
+        System.out.println("Se programan recordatorios:");
+        Recordatorio r1 = new Recordatorio("R1", now.plusHours(1).plusMinutes(10), "11111111", "Llamar a Juan Perez");
+        Recordatorio r2 = new Recordatorio("R2", now.plusMinutes(25), "22222222", "Enviar mail a Ana Gomez");
+        Recordatorio r3 = new Recordatorio("R3", now.plusHours(2).plusMinutes(5), "33333333", "Control de Martin Ruiz");
+        p.programar(r1);
+        p.programar(r2);
+        p.programar(r3);
+        System.out.println();
+        System.out.printf("%-8s %-16s %-8s %-20s\n", "ID", "FECHA", "HORA", "MENSAJE");
+        System.out.println("--------------------------------------------------------------");
+        for (Recordatorio rec : new Recordatorio[]{r1, r2, r3}) {
+            String hora = String.format("%02d:%02d", rec.fecha.getHour(), rec.fecha.getMinute());
+            System.out.printf("%-8s %-16s %-8s %-20s\n", rec.id, rec.fecha.toLocalDate(), hora, rec.mensaje);
+        }
+
+        System.out.println("\nEstado actual del heap:");
+        for (int i = 0; i < p.size(); i++) {
+            Recordatorio rec = getHeapRecordatorio(p, i);
+            if (rec != null) {
+                String hora = String.format("%02d:%02d", rec.fecha.getHour(), rec.fecha.getMinute());
+                System.out.printf("  %-8s %-16s %-8s %-20s\n", rec.id, rec.fecha.toLocalDate(), hora, rec.mensaje);
+            }
+        }
+
+        System.out.println("\nDisparando el recordatorio más próximo (pop):");
+        Recordatorio proximo = p.proximo();
+        String horaPop = String.format("%02d:%02d", proximo.fecha.getHour(), proximo.fecha.getMinute());
+        System.out.printf("  < pop:  %-8s %-16s %-8s %-20s\n", proximo.id, proximo.fecha.toLocalDate(), horaPop, proximo.mensaje);
+
+        System.out.println("\nEstado tras pop:");
+        for (int i = 0; i < p.size(); i++) {
+            Recordatorio rec = getHeapRecordatorio(p, i);
+            if (rec != null) {
+                String hora = String.format("%02d:%02d", rec.fecha.getHour(), rec.fecha.getMinute());
+                System.out.printf("  %-8s %-16s %-8s %-20s\n", rec.id, rec.fecha.toLocalDate(), hora, rec.mensaje);
+            }
+        }
+
+        System.out.println("\nReprogramando recordatorio R1 a una fecha más próxima:");
         p.reprogramar("R1", now.plusMinutes(1));
-        p.dump();
+        String horaReprog = String.format("%02d:%02d", now.plusMinutes(1).getHour(), now.plusMinutes(1).getMinute());
+        System.out.println("  > reprogramar: R1 a " + now.plusMinutes(1).toLocalDate() + " " + horaReprog);
+
+        System.out.println("\nEstado tras reprogramar:");
+        for (int i = 0; i < p.size(); i++) {
+            Recordatorio rec = getHeapRecordatorio(p, i);
+            if (rec != null) {
+                String hora = String.format("%02d:%02d", rec.fecha.getHour(), rec.fecha.getMinute());
+                System.out.printf("  %-8s %-16s %-8s %-20s\n", rec.id, rec.fecha.toLocalDate(), hora, rec.mensaje);
+            }
+        }
+
+        System.out.println("\n[Operaciones O(log n) en push/pop/reprogramar]");
+        System.out.println("═════════════════════════════════════════════════════════");
+
     }
+
+    // Método auxiliar para acceder al heap privado de Planner
+    private Recordatorio getHeapRecordatorio(Planner p, int idx) {
+        try {
+            java.lang.reflect.Field f = p.getClass().getDeclaredField("heap");
+            f.setAccessible(true);
+            Recordatorio[] arr = (Recordatorio[]) f.get(p);
+            return arr[idx];
+        } catch (Exception e) { return null; }
+    }
+    
 
     public void ej6_hashpacientes_demo() {
         System.out.print("\033[H\033[2J");
